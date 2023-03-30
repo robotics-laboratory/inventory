@@ -1,0 +1,9 @@
+{
+  "prerun": "from inventory.helpers import pem_bootstrap; pem_bootstrap()",
+  "directory": "migrations",
+  "history": "migrate_history",
+  "models": [
+    "inventory.orm.User",
+    "inventory.orm.InventoryItem"
+  ]
+}
