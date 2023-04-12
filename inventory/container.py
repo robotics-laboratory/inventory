@@ -2,13 +2,14 @@ from loguru_logging_intercept import setup_loguru_logging_intercept
 from dependency_injector.containers import DeclarativeContainer
 from dependency_injector import providers
 from dependency_injector.wiring import Provide, inject  # noqa
-from pydantic import BaseSettings
+from pydantic import BaseSettings, validator
 from inventory.orm import database
 from peewee import PostgresqlDatabase  # noqa
 from playhouse import db_url
 from loguru import logger
 from notion_client import AsyncClient as NotionClient
 from s3_parse_url import parse_s3_dsn
+from s3_parse_url import parse_s3_url
 from s3_parse_url.ext.clients import get_boto_client_kwargs
 from s3fs import S3FileSystem
 import sys
@@ -18,11 +19,18 @@ class Settings(BaseSettings):
     postgres_dsn: str
     notion_token: str
     notion_database_id: str
-    s3_dsn: str
+    s3_dsn : str
     s3_public_url: str
+    s3_bucket: str
     telegram_token: str
     logging_level: str = "info"
 
+    @validator("s3_bucket")
+    def set_s3_bucket(v,values):
+        if values["s3_dsn"] is not None:
+            dsn = parse_s3_url(values["s3_dsn"])
+            return dsn.bucket_name
+        return v
 
 def init_logging(level: str):
     logger.remove()
@@ -47,7 +55,8 @@ def init_s3fs(dsn: str):
         secret=s3_dsn.secret_access_key,
         client_kwargs=get_boto_client_kwargs(s3_dsn),
     )
-    s3fs.mkdir("<bucket>/images")
+    bucket = s3_dsn.bucket_name
+    s3fs.mkdir(f"{bucket}/images")
     return s3fs
 
 

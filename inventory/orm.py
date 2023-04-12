@@ -18,6 +18,7 @@ class User(ORMBase):
     id = peewee.AutoField()
     name = peewee.CharField(200)
     telegram_id = peewee.IntegerField(unique=True, index=True)
+    isAdmin = peewee.BooleanField()
 
 
 class InventoryItem(ORMBase):

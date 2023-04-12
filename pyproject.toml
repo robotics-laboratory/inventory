@@ -8,7 +8,7 @@ packages = [{include = "inventory"}]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-python-telegram-bot = "^20.2"
+python-telegram-bot = {extras = ["job-queue"], version = "^20.2"}
 peewee = "^3.16.0"
 pydantic = "^1.10.7"
 dependency-injector = "^4.41.0"
