@@ -52,14 +52,14 @@ def whitelist_restricted(func):
         return await func(update, context, *args, **kwargs)
     return wrapped
 
-def admin_restricred(func):
-    @wraps(func)
-    async def wrapped(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
-        tg_user = update.effective_user
+#def admin_restricred(func):
+    #@wraps(func)
+    #async def wrapped(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
+        #tg_user = update.effective_user
 
 
 
-        if orm.User.get_or_none(telegram_id = tg_user)
+        #if orm.User.get_or_none(telegram_id = tg_user)
 
 class WhitelistHandler(BaseHandler):
     def __init__(self, **kwargs):
@@ -212,7 +212,8 @@ async def remove_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def op_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
     pass
-async def deop_user(iupdatre: Update, context: ContextTypes.DEFAULT_TYPE)
+async def deop_user(iupdatre: Update, context: ContextTypes.DEFAULT_TYPE):
+    pass
 
 @inject
 def init_bot(
