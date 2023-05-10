@@ -1,14 +1,18 @@
 import asyncio
+
+import nest_asyncio
+from loguru import logger
+
+from inventory import orm
 from inventory.bot import init_bot
 from inventory.container import Container, Settings
-from inventory import orm
-from loguru import logger
-import nest_asyncio
 
 
 async def main():
     container = Container()
     container.settings.from_pydantic(Settings())
+    print(Settings())
+    return
     container.wire(packages=["inventory"])
     container.init_resources()
 
