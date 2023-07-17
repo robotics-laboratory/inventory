@@ -72,7 +72,6 @@ class WhitelistHandler(BaseHandler):
             await update.message.reply_text("Permission denied")
 
 
-@whitelist_restricted
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message is not None:
         user = orm.User.get(telegram_id=update.effective_user.id)
@@ -121,7 +120,6 @@ async def media_group_publisher(
         await msg.edit_text(f"✅ Item ID: {item.id}: {notion_url}")
 
 
-# @whitelist_restricted
 @inject
 async def add_item(
     update: Update,
@@ -199,22 +197,6 @@ async def create_notion_page(
     return response.get("url")
 
 
-async def add_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    pass
-
-
-async def remove_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    pass
-
-
-async def op_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    pass
-
-
-async def deop_user(iupdatre: Update, context: ContextTypes.DEFAULT_TYPE):
-    pass
-
-
 @inject
 def init_bot(
     telegram_token: str = Provide[Container.settings.telegram_token],
@@ -222,11 +204,7 @@ def init_bot(
     # TODO: Persistence (bonus task: store in postgres)
     # persistence = PicklePersistence(filepath=data_path / "bot_state.pkl")
     app = ApplicationBuilder().token(telegram_token).build()
-    # app.add_handler(WhitelistHandler())
+    app.add_handler(WhitelistHandler())
     app.add_handler(CommandHandler(["start", "help"], hello))
     app.add_handler(MessageHandler(None, add_item))
-    # app.add_handler(CommandHandler(["adduser"], add_user))
-    # app.add_handler(CommandHandler(["removeuser"], remove_user))
-    # app.add_handler(CommandHandler(["opuser"], op_user))
-    # app.add_handler(CommandHandler(["deopuser"], deop_user))
     return app
