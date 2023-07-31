@@ -1,36 +1,38 @@
-from loguru_logging_intercept import setup_loguru_logging_intercept
-from dependency_injector.containers import DeclarativeContainer
+import sys
+
 from dependency_injector import providers
+from dependency_injector.containers import DeclarativeContainer
 from dependency_injector.wiring import Provide, inject  # noqa
-from pydantic import BaseSettings, validator
-from inventory.orm import database
+from loguru import logger
+from loguru_logging_intercept import setup_loguru_logging_intercept
+from notion_client import AsyncClient as NotionClient
 from peewee import PostgresqlDatabase  # noqa
 from playhouse import db_url
-from loguru import logger
-from notion_client import AsyncClient as NotionClient
-from s3_parse_url import parse_s3_dsn
-from s3_parse_url import parse_s3_url
+from pydantic import BaseSettings, validator
+from s3_parse_url import parse_s3_dsn, parse_s3_url
 from s3_parse_url.ext.clients import get_boto_client_kwargs
 from s3fs import S3FileSystem
-import sys
+
+from inventory.orm import database
 
 
 class Settings(BaseSettings):
-    postgres_dsn: str
+    postgres_dsn: str 
     notion_token: str
     notion_database_id: str
-    s3_dsn : str
+    s3_dsn: str 
     s3_public_url: str
-    s3_bucket: str
     telegram_token: str
+    s3_bucket: str = ""
     logging_level: str = "info"
 
     @validator("s3_bucket")
-    def set_s3_bucket(v,values):
-        if values["s3_dsn"] is not None:
+    def set_s3_bucket(v, values):
+        if not v:
             dsn = parse_s3_url(values["s3_dsn"])
             return dsn.bucket_name
         return v
+
 
 def init_logging(level: str):
     logger.remove()
@@ -44,7 +46,7 @@ def init_database(dsn: str):
     connect_kwargs = db_url.parseresult_to_dict(parsed)
     database.init(**connect_kwargs)
     database.connect()
-    logger.info(f"Database ready")
+    logger.info("Database ready")
     return database
 
 

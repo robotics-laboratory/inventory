@@ -27,3 +27,92 @@ peewee-migrations = "^0.3.32"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+profile = "black"
+
+[tool.flakeheaven]
+exclude = ["migrations/*"]
+max_line_length = 8
+
+[tool.poe.tasks.user-add]
+envfile = ".env"
+script = "cli:useradd"
+help = "Add a new user to the database, granting them bot access"
+
+    [[tool.poe.tasks.user-add.args]]
+    name = "id"
+    type = "integer"
+    help = "Telegram user ID"
+    options = ["--id", "-i"]
+    required = true
+
+    [[tool.poe.tasks.user-add.args]]
+    name = "full_name"
+    help = "User's romanized surname with initials passed as string, e.g. \"Simagin D. A.\""
+    type = "string"
+    options = ["--full-name", "-n"]
+    required = true
+
+    [[tool.poe.tasks.user-add.args]]
+    name = "is_admin"
+    help = "Determines if the user has admin level access [default:false]"
+    type = "boolean"
+    default = false
+    options = ["--is-admin", "-a"]
+
+
+[tool.poe.tasks.user-del]
+
+envfile = ".env"
+script = "cli:userdel"
+help = "Delete a user by id, revoking their bot access rights"
+
+    [[tool.poe.tasks.user-del.args]]
+    name = "id"
+    help = "Telegram ID of the user to be deleted"
+    type = "integer"
+    options = ["--by-id", "-i"]
+    required = true
+
+[tool.poe.tasks.user-edit]
+
+envfile = ".env"
+script ="cli:useredit"
+help = "Edit a user in the database"
+
+    [[tool.poe.tasks.user-edit.args]]
+    name = "id"
+    help = "Telegram id of the edited user without the @"
+    type = "integer"
+    options = ["--by-id", "-i"]
+    required = true
+    
+    [[tool.poe.tasks.user-edit.args]]
+    name = "new_full_name"
+    help = "User's romanized surname with initials passed as string, e.g. \"Simagin D. A.\""
+    type = "string"
+    options = ["--new-full-name", "-n"]
+
+    [[tool.poe.tasks.user-edit.args]]
+
+    #ASK: Насколько булеан кринжовый?
+
+    name = "is_admin"
+    help = "Determines if the user has admin level access, omit to revoke admin access" 
+    options = ["--is-admin", "-a"]
+    type = "boolean"
+    default = false
+
+[tool.poe.tasks.user-list]
+
+envfile = ".env"
+script = "cli:userlist"
+help = "List all authorized users from database [default: username & permission level]"
+
+    [[tool.poe.tasks.user-list.args]]
+    name = "is_verbose"
+    help = "Output all database rows"
+    type = "boolean"
+    default = false
+    options = ["--verbose", "-v"]

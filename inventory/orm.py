@@ -1,7 +1,7 @@
 import peewee
+from peewee import fn  # noqa
 
 from inventory.enums import ItemType
-from peewee import fn  # noqa
 
 # Lazy initialization - see container.py > init_database
 # https://docs.peewee-orm.com/en/latest/peewee/database.html#run-time-database-configuration
@@ -16,9 +16,9 @@ class ORMBase(peewee.Model):
 
 class User(ORMBase):
     id = peewee.AutoField()
-    name = peewee.CharField(200)
     telegram_id = peewee.IntegerField(unique=True, index=True)
-    isAdmin = peewee.BooleanField()
+    full_name = peewee.CharField(200)
+    is_admin = peewee.BooleanField(default=False)
 
 
 class InventoryItem(ORMBase):

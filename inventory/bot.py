@@ -1,34 +1,32 @@
-import asyncio
+from dataclasses import dataclass
+from functools import wraps
 from pathlib import Path
-from typing import cast, List
+from typing import List, cast
+from uuid import uuid4
+
+from loguru import logger
 from telegram import Update
-from telegram import Bot
 from telegram.ext import (
-    ApplicationBuilder,
     Application,
-    MessageHandler,
-    ContextTypes,
+    ApplicationBuilder,
     BaseHandler,
-    PicklePersistence,
+    CallbackContext,
     CommandHandler,
-    CallbackContext
+    ContextTypes,
+    MessageHandler,
 )
 
 from inventory import orm
-from loguru import logger
 from inventory.container import (
     Container,
-    Provide,
-    inject,
-    PostgresqlDatabase,
     NotionClient,
+    PostgresqlDatabase,
+    Provide,
     S3FileSystem,
+    inject,
 )
-
-from uuid import uuid4
 from inventory.enums import ItemType
-from dataclasses import dataclass
-from functools import wraps 
+
 
 @dataclass
 class MessageDict:
@@ -39,27 +37,20 @@ class MessageDict:
 
 def whitelist_restricted(func):
     @wraps(func)
-    async def wrapped(update: Update, context: ContextTypes.DEFAULT_TYPE, *args,**kwargs):
+    async def wrapped(
+        update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs
+    ):
         tg_user = update.effective_user
 
-
-
-        if orm.User.get_or_none(telegram_id = tg_user.id) is None:
-            logger.warning(f"Unauthorized access: {tg_user.full_name} ({tg_user.id})")
+        if orm.User.get_or_none(telegram_id=tg_user.id) is None:
+            logger.warning(f"Unauthorized access: {tg_user.full_name} ({tg_user.id}) [{tg_user.username}]")
             if update.message is not None:
                 await update.message.reply_text("Permission denied")
             return
         return await func(update, context, *args, **kwargs)
+
     return wrapped
 
-def admin_restricred(func):
-    @wraps(func)
-    async def wrapped(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
-        tg_user = update.effective_user
-
-
-
-        if orm.User.get_or_none(telegram_id = tg_user)
 
 class WhitelistHandler(BaseHandler):
     def __init__(self, **kwargs):
@@ -80,6 +71,7 @@ class WhitelistHandler(BaseHandler):
         if update.message is not None:
             await update.message.reply_text("Permission denied")
 
+
 @whitelist_restricted
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message is not None:
@@ -95,7 +87,7 @@ async def upload_image(
     try:
         with s3fs.open(s3_image_path, "wb") as s3_file:
             await tg_file.download_to_memory(s3_file)
-    except:
+    except Exception:
         logger.exception("Image upload failed")
 
 
@@ -107,16 +99,16 @@ async def media_group_publisher(
     s3_bucket: str = Provide[Container.settings.s3_bucket],
     database: PostgresqlDatabase = Provide[Container.database],
 ):
-
-
     with database.transaction():
         context.job.data = cast(List[MessageDict], context.job.data)
         urls = []
         item_name = context.job.data[0].caption[:200]  # TODO: Check length
         item = orm.InventoryItem(name=item_name, type=ItemType.OBJECT)
         item.save()
-        msg = await context.bot.send_message(context._chat_id, f"⌛ Item ID: {item.id}: uploading...")
-        #msg = await update.message.reply_text(f"⌛ Item ID: {item.id}: uploading...")
+        msg = await context.bot.send_message(
+            context._chat_id, f"⌛ Item ID: {item.id}: uploading..."
+        )
+        # msg = await update.message.reply_text(f"⌛ Item ID: {item.id}: uploading...")
         for msg_dict in context.job.data:
             photo = await context.bot.get_file(msg_dict.photo_id)
             ext = photo.file_path.split(".")[-1]
@@ -127,10 +119,9 @@ async def media_group_publisher(
 
         notion_url = await create_notion_page(f"{item.id:05d}", item_name, urls)
         await msg.edit_text(f"✅ Item ID: {item.id}: {notion_url}")
-        
 
 
-#@whitelist_restricted
+@whitelist_restricted
 @inject
 async def add_item(
     update: Update,
@@ -150,14 +141,19 @@ async def add_item(
         photo_id = update.message.photo[-1].file_id
         caption = update.message.caption
         post_id = update.message.message_id
-        msg_dict = MessageDict(photo_id,caption,post_id)
+        msg_dict = MessageDict(photo_id, caption, post_id)
         jobs = context.job_queue.get_jobs_by_name(str(update.message.media_group_id))
         if jobs:
             jobs[0].data.append(msg_dict)
         else:
-            context.job_queue.run_once(callback = media_group_publisher, when = 2,data = [msg_dict], chat_id = update.effective_message.chat_id,
-                                       name = str(update.message.media_group_id))
-        return 
+            context.job_queue.run_once(
+                callback=media_group_publisher,
+                when=2,
+                data=[msg_dict],
+                chat_id=update.effective_message.chat_id,
+                name=str(update.message.media_group_id),
+            )
+        return
     with database.transaction():
         item_name = update.message.caption[:200]  # TODO: Check length
         item = orm.InventoryItem(name=item_name, type=ItemType.OBJECT)
@@ -171,7 +167,9 @@ async def add_item(
         s3_image_url = s3_public_url + f"images/{s3_image_path.name}"
         await upload_image(s3_image_path, tg_file)
 
-        notion_url = await create_notion_page(f"{item.id:05d}", item_name, [s3_image_url])
+        notion_url = await create_notion_page(
+            f"{item.id:05d}", item_name, [s3_image_url]
+        )
         await msg.edit_text(f"✅ Item ID: {item.id}: {notion_url}")
         return
 
@@ -191,28 +189,14 @@ async def create_notion_page(
             "Name": {"title": [{"text": {"content": item_name}}]},
         },
         children=[
-           {
+            {
                 "type": "image",
-                "image": {
-                    "type": "external",
-                    "external": {"url": url}
-                },
-                
-            } for url in image_url
+                "image": {"type": "external", "external": {"url": url}},
+            }
+            for url in image_url
         ],
     )
     return response.get("url")
-
-
-async def add_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    pass
-
-async def remove_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    pass
-
-async def op_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    pass
-async def deop_user(iupdatre: Update, context: ContextTypes.DEFAULT_TYPE)
 
 @inject
 def init_bot(
@@ -221,11 +205,7 @@ def init_bot(
     # TODO: Persistence (bonus task: store in postgres)
     # persistence = PicklePersistence(filepath=data_path / "bot_state.pkl")
     app = ApplicationBuilder().token(telegram_token).build()
-    #app.add_handler(WhitelistHandler())
+    # app.add_handler(WhitelistHandler())
     app.add_handler(CommandHandler(["start", "help"], hello))
     app.add_handler(MessageHandler(None, add_item))
-    #app.add_handler(CommandHandler(["adduser"], add_user))
-    #app.add_handler(CommandHandler(["removeuser"], remove_user))
-    #app.add_handler(CommandHandler(["opuser"], op_user))
-    #app.add_handler(CommandHandler(["deopuser"], deop_user))
     return app

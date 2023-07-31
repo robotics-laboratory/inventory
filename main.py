@@ -1,16 +1,21 @@
 import asyncio
+
+import nest_asyncio
+from loguru import logger
+
+from inventory import orm
 from inventory.bot import init_bot
 from inventory.container import Container, Settings
-from inventory import orm
-from loguru import logger
-import nest_asyncio
 
 
 async def main():
     container = Container()
     container.settings.from_pydantic(Settings())
-    container.wire(packages=["inventory"])
+    print(Settings())
+    #return
+    #This may break somethin
     container.init_resources()
+    container.wire(packages=["inventory"])
 
     # ORM usage demo
     total_users = orm.User.select().count()
@@ -19,6 +24,7 @@ async def main():
     bot = init_bot()
     nest_asyncio.apply()
     bot.run_polling()
+
 
 
 if __name__ == "__main__":
