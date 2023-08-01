@@ -33,7 +33,7 @@ profile = "black"
 
 [tool.flakeheaven]
 exclude = ["migrations/*"]
-max_line_length = 8
+max_line_length = 88
 
 [tool.poe.tasks.user-add]
 envfile = ".env"

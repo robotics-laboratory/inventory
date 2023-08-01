@@ -2,7 +2,6 @@ import asyncio
 
 import nest_asyncio
 from loguru import logger
-
 from inventory import orm
 from inventory.bot import init_bot
 from inventory.container import Container, Settings
@@ -16,10 +15,6 @@ async def main():
     #This may break somethin
     container.init_resources()
     container.wire(packages=["inventory"])
-
-    # ORM usage demo
-    total_users = orm.User.select().count()
-    logger.info(f"Total users in DB: {total_users}")
 
     bot = init_bot()
     nest_asyncio.apply()

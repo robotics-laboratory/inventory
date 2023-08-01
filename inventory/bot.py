@@ -44,6 +44,7 @@ def whitelist_restricted(func):
 
         if orm.User.get_or_none(telegram_id=tg_user.id) is None:
             logger.warning(f"Unauthorized access: {tg_user.full_name} ({tg_user.id}) [{tg_user.username}]")
+
             if update.message is not None:
                 await update.message.reply_text("Permission denied")
             return
@@ -70,7 +71,6 @@ class WhitelistHandler(BaseHandler):
     async def callback_fn(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if update.message is not None:
             await update.message.reply_text("Permission denied")
-
 
 @whitelist_restricted
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -120,7 +120,7 @@ async def media_group_publisher(
         notion_url = await create_notion_page(f"{item.id:05d}", item_name, urls)
         await msg.edit_text(f"✅ Item ID: {item.id}: {notion_url}")
 
-
+        
 @whitelist_restricted
 @inject
 async def add_item(
