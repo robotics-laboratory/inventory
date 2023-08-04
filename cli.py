@@ -1,14 +1,12 @@
-from inventory import orm
 import os
-from inventory.bot import init_bot
-from inventory.container import (
-    Container, 
-    Settings, 
-    PostgresqlDatabase, 
-    Provide,
-    inject,
-)
+from typing import Optional
+
 from loguru import logger
+from pydantic import parse_obj_as
+
+from inventory import orm
+from inventory.container import Container
+
 
 def init_container():
     container = Container()
@@ -19,76 +17,63 @@ def init_container():
     container.wire(packages=["inventory"])
     return container
 
+
 def useradd(
-    id:int, 
-    full_name: str, 
+    id: int,
+    full_name: str,
     is_admin: bool,
 ):
+    init_container()
+    total_users = orm.User.select().count()
+    logger.info(f"Total users in DB: {total_users}")
 
-    container = init_container()
-    database = container.database()
-
-    with database.transaction():
-        total_users = orm.User.select().count()
-        logger.info(f"Total users in DB: {total_users}")
-
-        new_user = orm.User(telegram_id = id, full_name = full_name, is_admin = is_admin)
-        new_user.save()
-        logger.info(f"Username {full_name}, id {id}, is_admin {is_admin} has been added")
+    new_user = orm.User(telegram_id=id, full_name=full_name, is_admin=is_admin)
+    new_user.save()
+    logger.info(f"Username {full_name}, id {id}, is_admin {is_admin} has been added")
 
     total_users = orm.User.select().count()
     logger.info(f"Total users in DB: {total_users}")
-    
-def userdel(
-        id: int,
-):
-    
-    container = init_container()
-    database = container.database()
 
-    with database.transaction():
-        logger.info(f"User to be removed: {id}")
-        user_to_be_removed = orm.User.select().where(orm.User.telegram_id == id).get()
-        user_to_be_removed.delete_instance()
+
+def userdel(id: int):
+    init_container()
+    logger.info(f"User to be removed: {id}")
+    user_to_be_removed = orm.User.select().where(orm.User.telegram_id == id).get()
+    user_to_be_removed.delete_instance()
+
 
 def useredit(
-       id:int, 
-        new_full_name: str, 
-        is_admin: bool,
+    id: int,
+    new_full_name: Optional[str],
+    is_admin: Optional[str],
 ):
+    init_container()
+    edited_user = orm.User.select().where(orm.User.telegram_id == id).get()
+    if new_full_name is not None:
+        edited_user.full_name = new_full_name
+        logger.info(f"Username: {edited_user.full_name}")
+    is_admin = parse_obj_as(Optional[bool], is_admin)
+    if is_admin is not None:
+        edited_user.is_admin = is_admin
+        logger.info(f"User's admin status was changed to: {is_admin}")
+    edited_user.save()
 
-    container = init_container()
-    database = container.database()
-
-    with database.transaction():
-        edited_user = orm.User.select().where(orm.User.telegram_id == id).get()
-        if(new_full_name is not None):
-            edited_user.full_name = new_full_name
-            logger.info(f"Username {edited_user.full_name} has been assigned to user id {edited_user.telegram_id}" )
-        if (is_admin is True):
-            logger.info(f"User {edited_user.telegram_id} has been given admin status")
-            edited_user.is_admin = is_admin
-        elif(is_admin is False):
-            logger.info(f"User {edited_user.telegram_id} has been stripped of admin status")
-            edited_user.is_admin = is_admin
-        edited_user.save()
 
 def userlist(
-        is_verbose: bool,
+    is_verbose: bool,
 ):
-
-    container = init_container()
-    database = container.database()
+    init_container()
 
     total_users = orm.User.select().count()
-    print(f"Total users in DB: {total_users}")
+    logger.info(f"Total users in DB: {total_users}")
 
-    if (is_verbose is True):
-        print(f"ID \t Full name \t Telegram ID \t ADMIN")
+    if is_verbose is True:
+        logger.info("ID   Full name                Telegram ID              ADMIN")
         for user in orm.User.select():
-            print(f"{user.id} \t {user.full_name} \t\t {user.telegram_id} \t\t {user.is_admin}")
-    elif(is_verbose is False):
-        print(f"Full name\t ADMIN")
+            logger.info(
+                f"{user.id:<5}{user.full_name:<25}{user.telegram_id:<25}{user.is_admin}"
+            )
+    elif is_verbose is False:
+        logger.info("NAME                     ADMIN")
         for user in orm.User.select():
-            print(f"{user.full_name} \t\t {user.is_admin}")
-
+            logger.info(f"{user.full_name:<25}{user.is_admin}")

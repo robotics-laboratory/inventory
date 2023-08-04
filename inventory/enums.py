@@ -7,5 +7,5 @@ class ItemType(IntEnum):
 
     @classmethod
     def choices(cls):
-        # TODO: Возможно, вынести в базовый класс 
+        # TODO: Возможно, вынести в базовый класс
         return [(x.value, x.name) for x in cls]

@@ -17,10 +17,10 @@ from inventory.orm import database
 
 
 class Settings(BaseSettings):
-    postgres_dsn: str 
+    postgres_dsn: str
     notion_token: str
     notion_database_id: str
-    s3_dsn: str 
+    s3_dsn: str
     s3_public_url: str
     telegram_token: str
     s3_bucket: str = ""

@@ -72,7 +72,7 @@ help = "Delete a user by id, revoking their bot access rights"
     name = "id"
     help = "Telegram ID of the user to be deleted"
     type = "integer"
-    options = ["--by-id", "-i"]
+    options = ["--id", "-i"]
     required = true
 
 [tool.poe.tasks.user-edit]
@@ -85,21 +85,19 @@ help = "Edit a user in the database"
     name = "id"
     help = "Telegram id of the edited user without the @"
     type = "integer"
-    options = ["--by-id", "-i"]
+    options = ["--id", "-i"]
     required = true
-    
+
     [[tool.poe.tasks.user-edit.args]]
     name = "new_full_name"
     help = "User's romanized surname with initials passed as string, e.g. \"Simagin D. A.\""
     type = "string"
-    options = ["--new-full-name", "-n"]
+    options = ["--full-name", "-n"]
 
     [[tool.poe.tasks.user-edit.args]]
 
-    #ASK: Насколько булеан кринжовый?
-
     name = "is_admin"
-    help = "Determines if the user has admin level access, omit to revoke admin access" 
+    help = "Determines if the user has admin level access, omit to revoke admin access"
     options = ["--is-admin", "-a"]
     type = "boolean"
     default = false
