@@ -9,8 +9,8 @@ from inventory.container import Container, Settings
 async def main():
     container = Container()
     container.settings.from_pydantic(Settings())
-    container.wire(packages=["inventory"])
     container.init_resources()
+    container.wire(packages=["inventory"])
 
     bot = init_bot()
     nest_asyncio.apply()

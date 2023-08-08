@@ -43,7 +43,10 @@ def whitelist_restricted(func):
         tg_user = update.effective_user
 
         if orm.User.get_or_none(telegram_id=tg_user.id) is None:
-            logger.warning(f"Unauthorized access: {tg_user.full_name} ({tg_user.id})")
+            logger.warning(
+                "Unauthorized access:\n",
+                f"{tg_user.full_name} ({tg_user.id}) [{tg_user.username}]",
+            )
             if update.message is not None:
                 await update.message.reply_text("Permission denied")
             return
@@ -72,6 +75,7 @@ class WhitelistHandler(BaseHandler):
             await update.message.reply_text("Permission denied")
 
 
+@whitelist_restricted
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message is not None:
         user = orm.User.get(telegram_id=update.effective_user.id)
@@ -120,6 +124,7 @@ async def media_group_publisher(
         await msg.edit_text(f"✅ Item ID: {item.id}: {notion_url}")
 
 
+@whitelist_restricted
 @inject
 async def add_item(
     update: Update,
@@ -204,7 +209,7 @@ def init_bot(
     # TODO: Persistence (bonus task: store in postgres)
     # persistence = PicklePersistence(filepath=data_path / "bot_state.pkl")
     app = ApplicationBuilder().token(telegram_token).build()
-    app.add_handler(WhitelistHandler())
+    # app.add_handler(WhitelistHandler())
     app.add_handler(CommandHandler(["start", "help"], hello))
     app.add_handler(MessageHandler(None, add_item))
     return app

@@ -34,3 +34,75 @@ profile = "black"
 [tool.flakeheaven]
 exclude = ["migrations/*"]
 max_line_length = 88
+
+[tool.poe.tasks.user-add]
+envfile = ".env"
+script = "cli:user_add"
+help = "Add a new user to the database, granting them bot access"
+
+    [[tool.poe.tasks.user-add.args]]
+    name = "id"
+    type = "integer"
+    help = "Telegram user ID"
+    options = ["--id", "-i"]
+    required = true
+
+    [[tool.poe.tasks.user-add.args]]
+    name = "full_name"
+    help = "User's romanized surname with initials passed as string, e.g. \"Simagin D. A.\""
+    type = "string"
+    options = ["--full-name", "-n"]
+    required = true
+
+    [[tool.poe.tasks.user-add.args]]
+    name = "is_admin"
+    help = "Determines if the user has admin level access [default:false]"
+    type = "boolean"
+    default = false
+    options = ["--is-admin", "-a"]
+
+
+[tool.poe.tasks.user-del]
+
+envfile = ".env"
+script = "cli:user_del"
+help = "Delete a user by id, revoking their bot access rights"
+
+    [[tool.poe.tasks.user-del.args]]
+    name = "id"
+    help = "Telegram ID of the user to be deleted"
+    type = "integer"
+    options = ["--id", "-i"]
+    required = true
+
+[tool.poe.tasks.user-edit]
+
+envfile = ".env"
+script ="cli:user_edit"
+help = "Edit a user in the database"
+
+    [[tool.poe.tasks.user-edit.args]]
+    name = "id"
+    help = "Telegram id of the edited user without the @"
+    type = "integer"
+    options = ["--id", "-i"]
+    required = true
+
+    [[tool.poe.tasks.user-edit.args]]
+    name = "new_full_name"
+    help = "User's romanized surname with initials passed as string, e.g. \"Simagin D. A.\""
+    type = "string"
+    options = ["--full-name", "-n"]
+
+    [[tool.poe.tasks.user-edit.args]]
+
+    name = "is_admin"
+    help = "Determines if the user has admin level access, omit to revoke admin access"
+    options = ["--is-admin", "-a"]
+    type = "string"
+
+[tool.poe.tasks.user-list]
+
+envfile = ".env"
+script = "cli:user_list"
+help = "List all authorized users from database [default: username & permission level]"
