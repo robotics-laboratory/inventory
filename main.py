@@ -12,6 +12,7 @@ async def main():
     container.init_resources()
     container.wire(packages=["inventory"])
 
+    # TODO: Add to container
     bot = init_bot()
     nest_asyncio.apply()
     bot.run_polling()

@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     postgres_dsn: str
     notion_token: str
     notion_database_id: str
+    template_pages: dict
     s3_dsn: str
     s3_public_url: str
     telegram_token: str
