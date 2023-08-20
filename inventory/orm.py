@@ -35,3 +35,21 @@ class InventoryItem(ORMBase):
     name = peewee.CharField(200)
     page_id = peewee.UUIDField(null=True)
     quantity = peewee.SmallIntegerField(default=0)
+
+
+class Relation(ORMBase):
+    parent = peewee.ForeignKeyField(InventoryItem, backref="children")
+    child = peewee.ForeignKeyField(InventoryItem, backref="parents")
+
+    class Meta:
+        primary_key = peewee.CompositeKey("parent", "child")
+
+
+# Enforces uniqueness of {parent, child} set (if A is in B, B can't be in A)
+idx = Relation.index(
+    peewee.SQL("LEAST(parent_id, child_id)"),
+    peewee.SQL("GREATEST(parent_id, child_id)"),
+    name="relation_unique_pairs",
+    unique=True,
+)
+Relation.add_index(idx)

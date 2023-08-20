@@ -4,6 +4,7 @@
   "history": "migrate_history",
   "models": [
     "inventory.orm.User",
-    "inventory.orm.InventoryItem"
+    "inventory.orm.InventoryItem",
+    "inventory.orm.Relation"
   ]
 }
