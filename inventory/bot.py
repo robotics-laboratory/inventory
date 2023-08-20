@@ -5,17 +5,21 @@ from typing import List, cast
 from uuid import uuid4
 
 from loguru import logger
-from telegram import Update
+from telegram import InlineKeyboardMarkup, Update
+from telegram.constants import ParseMode
 from telegram.ext import (
     Application,
     ApplicationBuilder,
     CallbackContext,
+    CallbackQueryHandler,
     CommandHandler,
     ContextTypes,
+    Defaults,
     MessageHandler,
 )
 
 from inventory import orm
+from inventory.buttons import ButtonData
 from inventory.container import (
     Container,
     PostgresqlDatabase,
@@ -24,6 +28,7 @@ from inventory.container import (
     inject,
 )
 from inventory.enums import ItemType
+from inventory.frames import BaseFrame, BrokenFrameError, MainFrame
 from inventory.notion import PAGE_TEMPLATES, create_page_nested
 
 
@@ -138,8 +143,12 @@ async def add_item(
             children=blocks,
         )
         notion_url = response["url"]
+        item.page_id = response["id"]
+        item.save()
         # Update message
-        await msg.edit_text(f"✅ Item ID: {item.id}: {notion_url}")
+        frame = MainFrame(context, msg.message_id, {"item_id": item.id})
+        await frame.prepare()
+        await frame.render()
         logger.info(f"Item added - id: {item.id}, url: {notion_url}")
 
 
@@ -162,7 +171,6 @@ async def media_group_publisher(context: CallbackContext):
 
 
 @whitelist_restricted
-@inject
 async def add_item_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.message.media_group_id is not None:
         # Multiple images
@@ -194,14 +202,59 @@ async def add_item_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await add_item(context, update.effective_message.chat_id, item_name, image_ids)
 
 
+# TODO: Переделать на класс, почистить
+async def button_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+
+    async def teardown(message: str):
+        # Вызываем в случае критической ошибки
+        await query.message.edit_text(message, reply_markup=InlineKeyboardMarkup([]))
+        await query.answer()
+
+    data = ButtonData.decode(query.data)
+    frame_class = BaseFrame.get_frame_class(data.frame)
+    if frame_class is None:
+        return await teardown(f"Unknown frame id: {data.frame}")
+
+    try:
+        frame = frame_class(context, query.message.message_id, data.extra)
+        await frame.prepare()
+        method = getattr(frame, data.action, None)
+        if method is None:
+            return await teardown(f"Unknown action: {data.action}")
+        await method()
+    except BrokenFrameError as e:
+        return await teardown(str(e))
+    await query.answer()
+
+
+@whitelist_restricted
+async def get_item(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if len(context.args) != 1:
+        return await update.message.reply_text("Usage: /get [item id]")
+    item_id = context.args[0]
+    if not item_id.isnumeric():
+        return await update.message.reply_text("Incorrect item id")
+    item = orm.InventoryItem.get_or_none(int(item_id))
+    if item is None:
+        return await update.message.reply_text("Item not found")
+    msg = await update.message.reply_text("Please wait...")
+    frame = MainFrame(context, msg.message_id, {"item_id": item.id})
+    await frame.prepare()
+    await frame.render()
+
+
 @inject
 def init_bot(
     telegram_token: str = Provide[Container.settings.telegram_token],
 ) -> Application:
     # TODO: Persistence (bonus task: store in postgres)
     # persistence = PicklePersistence(filepath=data_path / "bot_state.pkl")
-    app = ApplicationBuilder().token(telegram_token).build()
+    defaults = Defaults(parse_mode=ParseMode.HTML)
+    app = ApplicationBuilder().token(telegram_token).defaults(defaults).build()
     # app.add_handler(WhitelistHandler())
     app.add_handler(CommandHandler(["start", "help"], hello))
+    app.add_handler(CommandHandler("get", get_item))
     app.add_handler(MessageHandler(None, add_item_cmd))
+    app.add_handler(CallbackQueryHandler(button_router))
     return app

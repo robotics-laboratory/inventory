@@ -33,3 +33,5 @@ class InventoryItem(ORMBase):
     id = peewee.AutoField()
     type = peewee.IntegerField(choices=ItemType.choices())
     name = peewee.CharField(200)
+    page_id = peewee.UUIDField(null=True)
+    quantity = peewee.SmallIntegerField(default=0)
